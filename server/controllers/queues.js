@@ -5,7 +5,7 @@ import Business from "../models/Business.js";
 /* CREATE */
 export const createQueue = async (req, res) => {
   try {
-    const { userId, businessId } = req.body;
+    const { userId, businessId } = req.params;
     const maxQueue = await Queue.findOne({ businessId }).sort({ queueNumber: -1 });
     const nextQueueNumber = maxQueue ? maxQueue.queueNumber + 1 : 1;
 
