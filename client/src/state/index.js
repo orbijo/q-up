@@ -5,6 +5,8 @@ const initialState = {
   user: null,
   token: null,
   businesses: [],
+  queues: [],
+  queue: null
 };
 
 export const authSlice = createSlice({
@@ -40,11 +42,7 @@ export const authSlice = createSlice({
       state.queues = action.payload.queues;
     },
     setQueue: (state, action) => {
-      const updatedQueues = state.queues.map((queue) => {
-        if (queue._id === action.payload.queue._id) return action.payload.queue;
-        return queue;
-      });
-      state.queues = updatedQueues;
+      state.queue = action.payload.queue;
     },
     setBusinesses: (state, action) => {
       state.businesses = action.payload.businesses

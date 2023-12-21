@@ -12,7 +12,6 @@ const Business = ({ businessId, name, businessPicturePath, status }) => {
     const navigate = useNavigate();
     const { _id } = useSelector((state) => state.user); //modify
     const token = useSelector((state) => state.token);
-    const { queue } = useSelector((state) => state.queue)
 
     const { palette } = useTheme();
     const primaryLight = palette.primary.light;
@@ -22,22 +21,22 @@ const Business = ({ businessId, name, businessPicturePath, status }) => {
 
     const queueUp = async (userId, businessId, token) => {
         try {
-          const response = await fetch(
-            `http://localhost:3001/queues/${businessId}/${userId}`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-          const data = await response.json();
-          dispatch(setQueue({ queue: data }));
+            const response = await fetch(
+                `http://localhost:3001/queues/${businessId}/${userId}`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            const data = await response.json();
+            dispatch(setQueue({ queue: data }));
         } catch (error) {
-          console.error("Error queuing up:", error.message);
+            console.error("Error queuing up:", error.message);
         }
-      };
+    };
 
     return (
         <FlexBetween>
@@ -68,7 +67,7 @@ const Business = ({ businessId, name, businessPicturePath, status }) => {
                 </Box>
             </FlexBetween>
             <IconButton
-                onClick={() => queueUp()}
+                onClick={() => queueUp(_id, businessId, token)}
                 sx={{ backgroundColor: primaryLight, p: "0.6rem" }}
             >
                 <PersonRemoveOutlined sx={{ color: primaryDark }} />

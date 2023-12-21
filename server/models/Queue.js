@@ -3,11 +3,13 @@ import mongoose from "mongoose";
 const queueSchema = mongoose.Schema(
   {
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
     businessId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Business",
       required: true,
     },
     queueNumber: {

@@ -26,8 +26,6 @@ const BusinessesWidget = ({ userId }) => {
         getBusinesses();
     }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    console.log(businesses)
-
     return (
         <>
         {/* Stylize this input */}
