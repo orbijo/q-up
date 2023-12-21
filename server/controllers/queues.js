@@ -42,8 +42,8 @@ export const createQueue = async (req, res) => {
 export const getBusinessQueues = async (req, res) => {
   try {
     const { businessId } = req.params;
-    const queue = await Queue.find({ userId });
-    res.status(200).json(queue);
+    const queues = await Queue.find({ businessId }).populate('userId', 'firstName lastName picturePath');
+    res.status(200).json(queues);
   } catch (err) {
     res.status(404).json({ message: err.message });
   }

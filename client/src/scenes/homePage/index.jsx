@@ -11,7 +11,7 @@ import SearchBusinessWidget from "scenes/widgets/SearchBusinessWidget";
 const HomePage = () => {
   const token = useSelector((state) => state.token);
   const isNonMobileScreens = useMediaQuery("(min-width:1000px)");
-  const { _id, picturePath } = useSelector((state) => (state.user === null)? state.business : state.user);
+  const { _id, picturePath } = useSelector((state) => (state.user === null) ? state.business : state.user);
   const decodedToken = jwtDecode(token);
   const userType = decodedToken.type;
 
@@ -28,18 +28,22 @@ const HomePage = () => {
         <Box flexBasis={isNonMobileScreens ? "26%" : undefined}>
           {userType === 'user' && (
             <UserWidget userId={_id} picturePath={picturePath} />
-          ) }
-          { userType === 'business' && (
-            <BusinessUserWidget businessId={_id} picturePath={picturePath}/>
-          ) }
+          )}
+          {userType === 'business' && (
+            <BusinessUserWidget businessId={_id} picturePath={picturePath} />
+          )}
         </Box>
         <Box
           flexBasis={isNonMobileScreens ? "42%" : undefined}
           mt={isNonMobileScreens ? undefined : "2rem"}
         >
-          <SearchBusinessWidget />
+
           {userType === 'user' && (
-            <BusinessesWidget userId={_id}/>
+            <>
+              <SearchBusinessWidget />
+              <BusinessesWidget userId={_id} />
+            </>
+
           )}
           {userType === 'business' && (
             <QueuesWidget businessId={_id} />
