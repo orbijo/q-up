@@ -6,11 +6,20 @@ import Business from "../models/Business.js";
 export const createQueue = async (req, res) => {
   try {
     const { userId, businessId } = req.params;
+
+    // Check if user has existing queue
+    const existingQueue = await Queue.findOne({ userId });
+
+    if (existingQueue) {
+      // User already has a queue, you may choose to update the existing queue or respond accordingly
+      return res.status(409).json({ message: 'User already has a queue' });
+    }
+
+    // Logic for queue numbering
     const maxQueue = await Queue.findOne({ businessId }).sort({ queueNumber: -1 });
     const nextQueueNumber = maxQueue ? maxQueue.queueNumber + 1 : 1;
 
-    const user = await User.findById(userId);
-    const business = await Business.findById(businessId)
+    // Save queue in db
     const newQueue = new Queue({
       userId,
       businessId,
@@ -18,6 +27,7 @@ export const createQueue = async (req, res) => {
     });
     await newQueue.save();
 
+    // return queue as response
     const queue = await Queue.find();
     res.status(201).json(queue);
   } catch (err) {
