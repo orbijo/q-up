@@ -9,7 +9,7 @@ import UserImage from "components/UserImage";
 import FlexBetween from "components/FlexBetween";
 import WidgetWrapper from "components/WidgetWrapper";
 import { useSelector, useDispatch } from "react-redux";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -17,7 +17,8 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
-import { setQueue } from 'state';
+import { setQueue, setQueues } from 'state';
+import io from "socket.io-client";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />
@@ -32,12 +33,47 @@ const UserWidget = ({ userId, picturePath }) => {
   const { palette } = useTheme();
   const navigate = useNavigate();
   const token = useSelector((state) => state.token);
-  const queue = useSelector((state) => state.queue)
+  const queue = useSelector((state) => state.queue);
+  const queues = useSelector((state) => state.queues);
   const dark = palette.neutral.dark;
   const medium = palette.neutral.medium;
   const main = palette.neutral.main;
   const primaryLight = palette.primary.light;
   const primaryDark = palette.primary.dark;
+
+  const socketRef = useRef();
+
+  useEffect(() => {
+    const socket = io('http://localhost:3001');
+
+    socket.on('connect', () => {
+      console.log(`Socket connected: ${socket.id}`);
+    });
+
+    socketRef.current = socket;
+    // Fetch initial user and queue data
+    const fetchUserAndQueue = async () => {
+      await getUser();
+      await getUserQueue();
+      // await getBusinessQueues();
+    };
+
+    fetchUserAndQueue();
+
+    // Listen for 'updateQueue' events from the server
+    socket.on('updateQueue', (updatedQueue) => {
+      console.log("'updateQueue' event received"); // New logging statement
+      dispatch(setQueue({ queue: updatedQueue }));
+      getBusinessQueues();
+      console.log("UPDATE QUEUE EVENT TRIGGERED");
+    });
+
+    // Cleanup the socket listener on component unmount
+    return () => {
+      // Clean up the socket connection when the component unmounts
+      socket.close();
+    };
+  }, [queues, queue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getUser = async () => {
     const response = await fetch(`http://localhost:3001/users/${userId}`, {
@@ -57,9 +93,19 @@ const UserWidget = ({ userId, picturePath }) => {
     dispatch(setQueue({ queue: data }));
   };
 
-  const getCurrentQueue = async () => {
-
-  };
+  const getBusinessQueues = async () => {
+    if (queue) {
+      const businessId = queue.businessId._id;
+      const response = await fetch(`http://localhost:3001/queues/business/${businessId}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      dispatch(setQueues({ queues: data }));
+    } else {
+      console.error("Queue is null");
+    }
+  }
 
   const cancelQueue = async () => {
     try {
@@ -67,10 +113,13 @@ const UserWidget = ({ userId, picturePath }) => {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+      const data = await response.json();
       if (response.ok) {
         // Queue successfully canceled
         dispatch(setQueue({ queue: null })); // Clear the queue
+        socketRef.current.emit('updateQueue', data, () => {
+          console.log('updateQueue event emitted');
+      });
         handleClose(); // Close the dialog after successful cancellation
       } else {
         // Handle error, show a message or log it
@@ -81,11 +130,6 @@ const UserWidget = ({ userId, picturePath }) => {
       console.error("Fetch error:", error);
     }
   };
-
-  useEffect(() => {
-    getUser();
-    getUserQueue();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!user) {
     return null;
@@ -173,7 +217,7 @@ const UserWidget = ({ userId, picturePath }) => {
                 Serving:
               </Typography>
               <Typography color="primary" fontSize="1rem" fontWeight="1000">
-                {queue.queueNumber}
+                {queues && queues.length > 0 ? queues[0].queueNumber : 'NaN'}
               </Typography>
               <Typography color={main} fontWeight="500">
                 Your Number:
