@@ -16,12 +16,8 @@ import { useNavigate } from "react-router-dom";
 import Customer from "components/Customer";
 import { setQueues } from "state";
 import { debounce } from 'lodash';
-import io from 'socket.io-client';
-
-
 
 const BusinessUserWidget = ({ businessId, picturePath }) => {
-  
   const dispatch = useDispatch();
   const [business, setBusiness] = useState(null);
   const { palette } = useTheme();
@@ -34,8 +30,6 @@ const BusinessUserWidget = ({ businessId, picturePath }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const timer = useRef();
-
-  const socket = io('http://localhost:3001');
 
   const handleButtonClick = () => {
     if (!loading) {
@@ -68,48 +62,38 @@ const BusinessUserWidget = ({ businessId, picturePath }) => {
 
   const getNextQueue = async (queueId) => {
     try {
-     handleButtonClick(); // Initiate loading state
-   
-     const response = await fetch(`http://localhost:3001/queues/${queueId}`, {
-       method: "DELETE",
-       headers: { Authorization: `Bearer ${token}` },
-     });
-   
-     // Wait for a minimum of 1 second
-     const delay = new Promise(resolve => setTimeout(resolve, 1000));
-     await delay;
-   
-     if (response.ok) {
-       // Queue successfully canceled
-       dispatch(setQueues({ queues: queues.slice(1) }));
-   
-       // Establish a socket connection and emit 'queueUpdate' event
-       const socket = io('http://localhost:3001');
-       socket.emit('updateQueue', { _id: queueId });
-       
-     } else {
-       // Handle error, show a message or log it
-       console.error("Failed to update queue");
-     }
+      handleButtonClick(); // Initiate loading state
+  
+      const response = await fetch(`http://localhost:3001/queues/${queueId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+  
+      // Wait for a minimum of 1 second
+      const delay = new Promise(resolve => setTimeout(resolve, 1000));
+      await delay;
+  
+      if (response.ok) {
+        // Queue successfully canceled
+        dispatch(setQueues({ queues: queues.slice(1) }));
+      } else {
+        // Handle error, show a message or log it
+        console.error("Failed to update queue");
+      }
     } catch (error) {
-     // Handle fetch error
-     console.error("Fetch error:", error);
+      // Handle fetch error
+      console.error("Fetch error:", error);
     } finally {
-     // Ensure loading state is reset after the response
-     setLoading(false);
+      // Ensure loading state is reset after the response
+      setLoading(false);
     }
-   };
+  };
 
-  const debouncedGetBusinessQueues = debounce(getBusinessQueues, 1000);
+  const debouncedGetBusinessQueues = debounce(getBusinessQueues, 500);
 
   useEffect(() => {
     getBusiness();
     debouncedGetBusinessQueues();
-
-    socket.on('updateQueue', (data) => {
-      console.log(`Data: ${data}`)
-    });
-
   }, [queues]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!business) {
@@ -204,7 +188,7 @@ const BusinessUserWidget = ({ businessId, picturePath }) => {
         queues && queues.length > 0 ? (
           <Box position="relative" p="1rem 0">
             <FlexBetween mb="0.5rem">
-              <></>
+              <Button variant="text">Text</Button>
               <Button
                 variant="text"
                 disabled={loading}
