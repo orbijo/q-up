@@ -1,6 +1,6 @@
 # Q-Up
 
-An online queueing app
+An online queueing app in compliance with CS 3105 Application Development Final Project
 
 ## Setup
 
