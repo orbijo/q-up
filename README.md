@@ -3,6 +3,10 @@
 An online queueing app in compliance with CS 3105 Application Development Final Project  
 [Demo Recording of App](https://youtu.be/UjMRUO9ck20)
 
+## Members
+- Josh Arkane C. Orbiso
+- Giovanni Ross P. Sucalit
+
 ## Setup
 
 ### You can clone this repo via
