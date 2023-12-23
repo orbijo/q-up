@@ -17,6 +17,7 @@ MONGO_URL = 'mongodb+srv://myDatabaseUser:D1fficultP%40ssw0rd@cluster0.example.m
 JWT_SECRET = '<YourOwnJWTSecret>'
 PORT=3001
 ```
+(Know your connection string here)[https://www.mongodb.com/docs/manual/reference/connection-string/]
 run npm install
 ```
 cd server
