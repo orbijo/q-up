@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import Customer from "components/Customer";
 import { setQueues } from "state";
 import { debounce } from 'lodash';
+import io from "socket.io-client";
 
 const BusinessUserWidget = ({ businessId, picturePath }) => {
   const dispatch = useDispatch();
@@ -30,6 +31,8 @@ const BusinessUserWidget = ({ businessId, picturePath }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const timer = useRef();
+
+  const socketRef = useRef();
 
   const handleButtonClick = () => {
     if (!loading) {
@@ -63,19 +66,23 @@ const BusinessUserWidget = ({ businessId, picturePath }) => {
   const getNextQueue = async (queueId) => {
     try {
       handleButtonClick(); // Initiate loading state
-  
+
       const response = await fetch(`http://localhost:3001/queues/${queueId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+
       // Wait for a minimum of 1 second
       const delay = new Promise(resolve => setTimeout(resolve, 1000));
       await delay;
-  
+
       if (response.ok) {
+        const data = await response.json();
         // Queue successfully canceled
         dispatch(setQueues({ queues: queues.slice(1) }));
+        socketRef.current.emit('updateQueue', data, () => {
+          console.log('updateQueue event emitted');
+        });
       } else {
         // Handle error, show a message or log it
         console.error("Failed to update queue");
@@ -89,12 +96,60 @@ const BusinessUserWidget = ({ businessId, picturePath }) => {
     }
   };
 
-  const debouncedGetBusinessQueues = debounce(getBusinessQueues, 500);
+  const debouncedGetBusinessQueues = debounce(getBusinessQueues, 1000);
+
+  // useEffect(() => {
+  //   getBusiness();
+  //   debouncedGetBusinessQueues();
+
+  //   const socket = io('http://localhost:3001');
+
+  //   socket.on('connect', () => {
+  //     console.log(`Socket connected: ${socket.id}`);
+  //   });
+
+  //   socket.on('queueUpdated', (updatedQueue) => {
+  //     // Update the state or perform other actions based on the updated queue
+  //     console.log('Queue updated: ', updatedQueue);
+  //   });
+
+  //   socketRef.current = socket; // Store the socket value
+
+  //   return () => {
+  //     // Clean up the socket connection when the component unmounts
+  //     socket.close();
+  //   };
+  //  }, [queues]); // eslint-disable-line react-hooks/exhaustive-deps
+  // // [queues]
 
   useEffect(() => {
     getBusiness();
+    getBusinessQueues();
+  }, []);
+
+  useEffect(() => {
     debouncedGetBusinessQueues();
-  }, [queues]); // eslint-disable-line react-hooks/exhaustive-deps
+    const socket = io('http://localhost:3001');
+
+    socket.on('connect', () => {
+      console.log(`Socket connected UserWidget: ${socket.id}`);
+    });
+
+    socketRef.current = socket;
+
+    // Listen for 'queueUpdated' events from the server
+    socket.on('queueUpdated', (updatedQueue) => {
+      console.log('Queue Updated Event')
+      debouncedGetBusinessQueues();
+      dispatch(setQueues({ queues: queues.slice(1) }));
+    });
+
+    // Cleanup the socket listener on component unmount
+    return () => {
+      // Clean up the socket connection when the component unmounts
+      socket.close();
+    };
+  }, [queues]);
 
   if (!business) {
     return null;

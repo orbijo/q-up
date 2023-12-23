@@ -89,6 +89,8 @@ io.on('connection', (socket) => {
 
   socket.on('updateQueue', (data) => {
     console.log(`Queue Updated: ${data._id}`);
+
+    socket.emit('queueUpdated', { message: 'Queue successfully updated' });
   });
 
   socket.on('disconnect', () => {

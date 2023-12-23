@@ -19,6 +19,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
 import { setQueue, setQueues } from 'state';
 import io from "socket.io-client";
+import { debounce } from "lodash";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />
@@ -28,8 +29,14 @@ const UserWidget = ({ userId, picturePath }) => {
   const dispatch = useDispatch();
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
+  const [openDia, setOpenDia] = useState(true);
+  const [turn, setTurn] = useState(false);
   const handleClickOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+  const handleClickOpenDia = () => setOpenDia(true);
+  const handleCloseDia = () => setOpenDia(false);
+  const handleTurn = () => setTurn(true);
+  const endTurn = () => setTurn(false);
   const { palette } = useTheme();
   const navigate = useNavigate();
   const token = useSelector((state) => state.token);
@@ -42,56 +49,6 @@ const UserWidget = ({ userId, picturePath }) => {
   const primaryDark = palette.primary.dark;
 
   const socketRef = useRef();
-
-  useEffect(() => {
-    const socket = io('http://localhost:3001');
-
-    socket.on('connect', () => {
-      console.log(`Socket connected: ${socket.id}`);
-    });
-
-    socketRef.current = socket;
-    // Fetch initial user and queue data
-    const fetchUserAndQueue = async () => {
-      await getUser();
-      await getUserQueue();
-      // await getBusinessQueues();
-    };
-
-    fetchUserAndQueue();
-
-    // Listen for 'updateQueue' events from the server
-    socket.on('updateQueue', (updatedQueue) => {
-      console.log("'updateQueue' event received"); // New logging statement
-      dispatch(setQueue({ queue: updatedQueue }));
-      getBusinessQueues();
-      console.log("UPDATE QUEUE EVENT TRIGGERED");
-    });
-
-    // Cleanup the socket listener on component unmount
-    return () => {
-      // Clean up the socket connection when the component unmounts
-      socket.close();
-    };
-  }, [queues, queue]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const getUser = async () => {
-    const response = await fetch(`http://localhost:3001/users/${userId}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await response.json();
-    setUser(data);
-  };
-
-  const getUserQueue = async () => {
-    const response = await fetch(`http://localhost:3001/queues/user/${userId}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await response.json();
-    dispatch(setQueue({ queue: data }));
-  };
 
   const getBusinessQueues = async () => {
     if (queue) {
@@ -107,6 +64,68 @@ const UserWidget = ({ userId, picturePath }) => {
     }
   }
 
+  const getUserQueue = async () => {
+    const response = await fetch(`http://localhost:3001/queues/user/${userId}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    dispatch(setQueue({ queue: data }));
+    checkQueue()
+  };
+
+  const checkQueue = () => {
+    if (queue !== null && queues !== null) {
+      if (queue.queueNumber === queues[0].queueNumber) {
+        handleTurn()
+      }
+      else {
+        endTurn()
+      }
+    }
+  }
+
+  const debouncedGetBusinessQueues = debounce(getBusinessQueues, 1000)
+  const debouncedGetUserQueue = debounce(getUserQueue, 1000)
+
+  useEffect(() => {
+    getUser()
+    getUserQueue()
+  }, [])
+
+  useEffect(() => {
+    debouncedGetBusinessQueues()
+    debouncedGetUserQueue()
+    const socket = io('http://localhost:3001');
+
+    socket.on('connect', () => {
+      console.log(`Socket connected UserWidget: ${socket.id}`);
+    });
+
+    socketRef.current = socket;
+
+    // Listen for 'queueUpdated' events from the server
+    socket.on('queueUpdated', (updatedQueue) => {
+      console.log("'queueUpdated' event received");
+      dispatch(setQueue({ queue: updatedQueue }));
+    });
+
+    // Cleanup the socket listener on component unmount
+    return () => {
+      // Clean up the socket connection when the component unmounts
+      socket.close();
+    };
+  }, [queue, queues]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getUser = async () => {
+    const response = await fetch(`http://localhost:3001/users/${userId}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    setUser(data);
+  };
+
   const cancelQueue = async () => {
     try {
       const response = await fetch(`http://localhost:3001/queues/${queue._id}`, {
@@ -119,7 +138,7 @@ const UserWidget = ({ userId, picturePath }) => {
         dispatch(setQueue({ queue: null })); // Clear the queue
         socketRef.current.emit('updateQueue', data, () => {
           console.log('updateQueue event emitted');
-      });
+        });
         handleClose(); // Close the dialog after successful cancellation
       } else {
         // Handle error, show a message or log it
@@ -270,6 +289,44 @@ const UserWidget = ({ userId, picturePath }) => {
           </Box>
         </>
       )}
+      {queue !== null ? (
+        <Dialog
+          open={turn&&openDia}
+          TransitionComponent={Transition}
+          keepMounted
+          onClose={endTurn}
+          aria-describedby="alert-dialog-slide-description"
+        >
+          <DialogTitle>It is now your turn</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-slide-description">
+              Please wait for {queue != null ? queue.businessId.businessName : 'NaN'} to complete your transaction
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDia}>OK</Button>
+          </DialogActions>
+        </Dialog>
+      ) : (
+        <Dialog
+          open={turn&&openDia}
+          TransitionComponent={Transition}
+          keepMounted
+          onClose={handleCloseDia}
+          aria-describedby="alert-dialog-slide-description"
+        >
+          <DialogTitle>Queue Complete</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-slide-description">
+              Your queue has been completed.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDia}>OK</Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
     </WidgetWrapper>
   );
 };

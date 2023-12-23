@@ -57,7 +57,7 @@ const Business = ({ businessId, name, businessPicturePath, status }) => {
             // Use the socket value stored in socketRef
             socketRef.current.emit('updateQueue', data, () => {
                 console.log('updateQueue event emitted');
-            });
+              });
         } catch (error) {
             console.error("Error queuing up:", error.message);
         }
